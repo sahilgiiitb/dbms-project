@@ -1,188 +1,170 @@
 <?php
-include("db.php");
-include("header.php");
+include 'includes/db.php';
+include 'includes/header.php';
 
-$q1 = "SELECT ce.center_name, COUNT(v.vaccination_id) AS total
-       FROM VaccinationCenters ce
-       LEFT JOIN Vaccinations v ON ce.center_id = v.center_id
-       GROUP BY ce.center_id, ce.center_name";
-$r1 = mysqli_query($con, $q1);
+$defaulters_sql = "SELECT o.owner_name, o.phone, p.property_address, a.assessment_year,
+                          a.tax_amount - IFNULL(SUM(pay.amount_paid), 0) AS due
+                   FROM TaxAssessments a
+                   JOIN Properties p ON a.property_id = p.property_id
+                   JOIN PropertyOwners o ON p.owner_id = o.owner_id
+                   LEFT JOIN Payments pay ON a.assessment_id = pay.assessment_id
+                   GROUP BY a.assessment_id, o.owner_name, o.phone, p.property_address,
+                            a.assessment_year, a.tax_amount
+                   HAVING due > 0
+                   ORDER BY due DESC";
+$defaulters_result = mysqli_query($con, $defaulters_sql);
 
-$q2 = "SELECT vc.vaccine_name, COUNT(v.vaccination_id) AS total
-       FROM Vaccines vc
-       LEFT JOIN Vaccinations v ON vc.vaccine_id = v.vaccine_id
-       GROUP BY vc.vaccine_id, vc.vaccine_name";
-$r2 = mysqli_query($con, $q2);
+$yearwise_sql = "SELECT a.assessment_year,
+                        SUM(a.tax_amount) AS total_assessed,
+                        IFNULL(SUM(x.paid), 0) AS total_collected,
+                        SUM(a.tax_amount) - IFNULL(SUM(x.paid), 0) AS total_pending
+                 FROM TaxAssessments a
+                 LEFT JOIN (SELECT assessment_id, SUM(amount_paid) AS paid
+                            FROM Payments GROUP BY assessment_id) x
+                         ON a.assessment_id = x.assessment_id
+                 GROUP BY a.assessment_year
+                 ORDER BY a.assessment_year DESC";
+$yearwise_result = mysqli_query($con, $yearwise_sql);
 
-$q3 = "SELECT c.citizen_name, vc.vaccine_name, COUNT(*) AS doses_taken
-       FROM Vaccinations v
-       JOIN Citizens c ON v.citizen_id = c.citizen_id
-       JOIN Vaccines vc ON v.vaccine_id = vc.vaccine_id
-       GROUP BY c.citizen_id, vc.vaccine_id, c.citizen_name, vc.vaccine_name, vc.doses_required
-       HAVING COUNT(*) >= vc.doses_required";
-$r3 = mysqli_query($con, $q3);
+$typewise_sql = "SELECT p.property_type,
+                        COUNT(a.assessment_id) AS assessments,
+                        SUM(a.tax_amount) AS total_assessed,
+                        IFNULL(SUM(x.paid), 0) AS total_collected
+                 FROM Properties p
+                 JOIN TaxAssessments a ON p.property_id = a.property_id
+                 LEFT JOIN (SELECT assessment_id, SUM(amount_paid) AS paid
+                            FROM Payments GROUP BY assessment_id) x
+                         ON a.assessment_id = x.assessment_id
+                 GROUP BY p.property_type
+                 ORDER BY p.property_type ASC";
+$typewise_result = mysqli_query($con, $typewise_sql);
 
-$q4 = "SELECT c.citizen_name, vc.vaccine_name, COUNT(*) AS doses_taken, vc.doses_required
-       FROM Vaccinations v
-       JOIN Citizens c ON v.citizen_id = c.citizen_id
-       JOIN Vaccines vc ON v.vaccine_id = vc.vaccine_id
-       GROUP BY c.citizen_id, vc.vaccine_id, c.citizen_name, vc.vaccine_name, vc.doses_required
-       HAVING COUNT(*) < vc.doses_required";
-$r4 = mysqli_query($con, $q4);
-
-$q5 = "SELECT v.vaccination_id, c.citizen_name, vc.vaccine_name, ce.center_name, v.vaccination_date
-       FROM Vaccinations v
-       JOIN Citizens c ON v.citizen_id = c.citizen_id
-       JOIN Vaccines vc ON v.vaccine_id = vc.vaccine_id
-       JOIN VaccinationCenters ce ON v.center_id = ce.center_id
-       ORDER BY v.vaccination_date DESC";
-$r5 = mysqli_query($con, $q5);
+$ownerwise_sql = "SELECT o.owner_name,
+                         SUM(a.tax_amount) - IFNULL(SUM(x.paid), 0) AS pending
+                  FROM PropertyOwners o
+                  JOIN Properties p ON o.owner_id = p.owner_id
+                  JOIN TaxAssessments a ON p.property_id = a.property_id
+                  LEFT JOIN (SELECT assessment_id, SUM(amount_paid) AS paid
+                             FROM Payments GROUP BY assessment_id) x
+                          ON a.assessment_id = x.assessment_id
+                  GROUP BY o.owner_id, o.owner_name
+                  HAVING pending > 0
+                  ORDER BY pending DESC";
+$ownerwise_result = mysqli_query($con, $ownerwise_sql);
 ?>
 
-<h2>Vaccination Reports & Analytics</h2>
+<h1 class="page-title">Tax System Reports</h1>
 
-<div class="card">
-    <h3>1. Center-wise Total Vaccinations</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Center Name</th>
-                <th>Total Vaccinations Administered</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (mysqli_num_rows($r1) > 0) { ?>
-                <?php while ($row = mysqli_fetch_assoc($r1)) { ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($row['center_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['total']); ?></td>
-                    </tr>
-                <?php } ?>
-            <?php } else { ?>
+<h2 class="section-title">1. Tax Defaulters Report (Assessments with Pending Dues)</h2>
+<?php if ($defaulters_result && mysqli_num_rows($defaulters_result) > 0): ?>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
                 <tr>
-                    <td colspan="2" style="text-align:center;">No data available.</td>
+                    <th>Owner Name</th>
+                    <th>Phone</th>
+                    <th>Property Address</th>
+                    <th>Year</th>
+                    <th class="text-right">Pending Due (Rs.)</th>
                 </tr>
-            <?php } ?>
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                <?php while ($row = mysqli_fetch_assoc($defaulters_result)): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($row['owner_name']); ?></td>
+                        <td><?php echo htmlspecialchars($row['phone']); ?></td>
+                        <td><?php echo htmlspecialchars($row['property_address']); ?></td>
+                        <td><?php echo (int)$row['assessment_year']; ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['due'], 2); ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+<?php else: ?>
+    <div class="empty-msg">No tax defaulters found.</div>
+<?php endif; ?>
 
-<div class="card">
-    <h3>2. Vaccine-wise Total Doses Administered</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Vaccine Name</th>
-                <th>Total Doses Given</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (mysqli_num_rows($r2) > 0) { ?>
-                <?php while ($row = mysqli_fetch_assoc($r2)) { ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($row['vaccine_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['total']); ?></td>
-                    </tr>
-                <?php } ?>
-            <?php } else { ?>
+<h2 class="section-title">2. Year-Wise Tax Collection Summary</h2>
+<?php if ($yearwise_result && mysqli_num_rows($yearwise_result) > 0): ?>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
                 <tr>
-                    <td colspan="2" style="text-align:center;">No data available.</td>
+                    <th>Assessment Year</th>
+                    <th class="text-right">Total Assessed (Rs.)</th>
+                    <th class="text-right">Total Collected (Rs.)</th>
+                    <th class="text-right">Total Pending (Rs.)</th>
                 </tr>
-            <?php } ?>
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                <?php while ($row = mysqli_fetch_assoc($yearwise_result)): ?>
+                    <tr>
+                        <td><?php echo (int)$row['assessment_year']; ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['total_assessed'], 2); ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['total_collected'], 2); ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['total_pending'], 2); ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+<?php else: ?>
+    <div class="empty-msg">No assessment data available.</div>
+<?php endif; ?>
 
-<div class="card">
-    <h3>3. Citizens Who Completed All Required Doses</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Citizen Name</th>
-                <th>Vaccine Name</th>
-                <th>Doses Completed</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (mysqli_num_rows($r3) > 0) { ?>
-                <?php while ($row = mysqli_fetch_assoc($r3)) { ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($row['citizen_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['vaccine_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['doses_taken']); ?></td>
-                    </tr>
-                <?php } ?>
-            <?php } else { ?>
+<h2 class="section-title">3. Property Type-Wise Tax Summary</h2>
+<?php if ($typewise_result && mysqli_num_rows($typewise_result) > 0): ?>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
                 <tr>
-                    <td colspan="3" style="text-align:center;">No fully vaccinated citizens found.</td>
+                    <th>Property Type</th>
+                    <th class="text-center">Assessments</th>
+                    <th class="text-right">Total Assessed (Rs.)</th>
+                    <th class="text-right">Total Collected (Rs.)</th>
                 </tr>
-            <?php } ?>
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                <?php while ($row = mysqli_fetch_assoc($typewise_result)): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($row['property_type']); ?></td>
+                        <td class="text-center"><?php echo (int)$row['assessments']; ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['total_assessed'], 2); ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['total_collected'], 2); ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+<?php else: ?>
+    <div class="empty-msg">No property type data available.</div>
+<?php endif; ?>
 
-<div class="card">
-    <h3>4. Citizens with Pending Doses</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Citizen Name</th>
-                <th>Vaccine Name</th>
-                <th>Doses Taken</th>
-                <th>Doses Required</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (mysqli_num_rows($r4) > 0) { ?>
-                <?php while ($row = mysqli_fetch_assoc($r4)) { ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($row['citizen_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['vaccine_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['doses_taken']); ?></td>
-                        <td><?php echo htmlspecialchars($row['doses_required']); ?></td>
-                    </tr>
-                <?php } ?>
-            <?php } else { ?>
+<h2 class="section-title">4. Owner-Wise Pending Dues</h2>
+<?php if ($ownerwise_result && mysqli_num_rows($ownerwise_result) > 0): ?>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
                 <tr>
-                    <td colspan="4" style="text-align:center;">No citizens with pending doses found.</td>
+                    <th>Owner Name</th>
+                    <th class="text-right">Pending Amount (Rs.)</th>
                 </tr>
-            <?php } ?>
-        </tbody>
-    </table>
-</div>
-
-<div class="card">
-    <h3>5. All Vaccination Records Summary</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Citizen Name</th>
-                <th>Vaccine Name</th>
-                <th>Center</th>
-                <th>Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (mysqli_num_rows($r5) > 0) { ?>
-                <?php while ($row = mysqli_fetch_assoc($r5)) { ?>
+            </thead>
+            <tbody>
+                <?php while ($row = mysqli_fetch_assoc($ownerwise_result)): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($row['vaccination_id']); ?></td>
-                        <td><?php echo htmlspecialchars($row['citizen_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['vaccine_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['center_name']); ?></td>
-                        <td><?php echo htmlspecialchars($row['vaccination_date']); ?></td>
+                        <td><?php echo htmlspecialchars($row['owner_name']); ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['pending'], 2); ?></td>
                     </tr>
-                <?php } ?>
-            <?php } else { ?>
-                <tr>
-                    <td colspan="5" style="text-align:center;">No records found.</td>
-                </tr>
-            <?php } ?>
-        </tbody>
-    </table>
-</div>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+<?php else: ?>
+    <div class="empty-msg">No pending amounts for any owners.</div>
+<?php endif; ?>
 
 <?php
-include("footer.php");
+include 'includes/footer.php';
 ?>

@@ -1,34 +1,33 @@
-CREATE DATABASE IF NOT EXISTS covid_vaccination;
-USE covid_vaccination;
+CREATE DATABASE IF NOT EXISTS property_tax;
+USE property_tax;
 
-CREATE TABLE Citizens (
-    citizen_id INT AUTO_INCREMENT PRIMARY KEY,
-    citizen_name VARCHAR(100) NOT NULL,
-    aadhaar_no CHAR(12) NOT NULL UNIQUE,
-    mobile CHAR(10) NOT NULL
+CREATE TABLE PropertyOwners (
+    owner_id INT AUTO_INCREMENT PRIMARY KEY,
+    owner_name VARCHAR(100) NOT NULL,
+    phone CHAR(10) NOT NULL,
+    email VARCHAR(100)
 );
 
-CREATE TABLE VaccinationCenters (
-    center_id INT AUTO_INCREMENT PRIMARY KEY,
-    center_name VARCHAR(100) NOT NULL,
-    district VARCHAR(50) NOT NULL,
-    state VARCHAR(50) NOT NULL
+CREATE TABLE Properties (
+    property_id INT AUTO_INCREMENT PRIMARY KEY,
+    owner_id INT NOT NULL,
+    property_address VARCHAR(255) NOT NULL,
+    property_type VARCHAR(30) NOT NULL,
+    FOREIGN KEY (owner_id) REFERENCES PropertyOwners(owner_id)
 );
 
-CREATE TABLE Vaccines (
-    vaccine_id INT AUTO_INCREMENT PRIMARY KEY,
-    vaccine_name VARCHAR(50) NOT NULL,
-    manufacturer VARCHAR(100) NOT NULL,
-    doses_required INT NOT NULL CHECK (doses_required > 0)
+CREATE TABLE TaxAssessments (
+    assessment_id INT AUTO_INCREMENT PRIMARY KEY,
+    property_id INT NOT NULL,
+    assessment_year INT NOT NULL,
+    tax_amount DECIMAL(10,2) NOT NULL CHECK (tax_amount > 0),
+    FOREIGN KEY (property_id) REFERENCES Properties(property_id)
 );
 
-CREATE TABLE Vaccinations (
-    vaccination_id INT AUTO_INCREMENT PRIMARY KEY,
-    citizen_id INT NOT NULL,
-    vaccine_id INT NOT NULL,
-    center_id INT NOT NULL,
-    vaccination_date DATE NOT NULL,
-    FOREIGN KEY (citizen_id) REFERENCES Citizens(citizen_id),
-    FOREIGN KEY (vaccine_id) REFERENCES Vaccines(vaccine_id),
-    FOREIGN KEY (center_id) REFERENCES VaccinationCenters(center_id)
+CREATE TABLE Payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    assessment_id INT NOT NULL,
+    payment_date DATE NOT NULL,
+    amount_paid DECIMAL(10,2) NOT NULL CHECK (amount_paid > 0),
+    FOREIGN KEY (assessment_id) REFERENCES TaxAssessments(assessment_id)
 );

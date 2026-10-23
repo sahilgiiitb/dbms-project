@@ -1,36 +1,81 @@
-USE covid_vaccination;
+USE property_tax;
 
-INSERT INTO Citizens (citizen_id, citizen_name, aadhaar_no, mobile) VALUES
-(1, 'Rajesh Kumar', '123456789012', '9876543210'),
-(2, 'Priya Sharma', '234567890123', '9876543211'),
-(3, 'Amit Verma', '345678901234', '9876543212'),
-(4, 'Sunita Patel', '456789012345', '9876543213'),
-(5, 'Rahul Singh', '567890123456', '9876543214'),
-(6, 'Ananya Roy', '678901234567', '9876543215'),
-(7, 'Vikas Yadav', '789012345678', '9876543216'),
-(8, 'Pooja Nair', '890123456789', '9876543217');
+INSERT INTO PropertyOwners (owner_id, owner_name, phone, email) VALUES
+(1, 'Ramesh Sharma', '9826011223', 'ramesh.sharma@gmail.com'),
+(2, 'Sunita Verma', '9893044556', 'sunita.verma@yahoo.com'),
+(3, 'Rajesh Patel', '9425077889', 'rajesh.patel@outlook.com'),
+(4, 'Priya Nair', '9811022334', 'priya.nair@gmail.com'),
+(5, 'Amit Joshi', '9755033445', 'amit.joshi@rediffmail.com'),
+(6, 'Meena Iyer', '9827066778', 'meena.iyer@gmail.com'),
+(7, 'Suresh Gupta', '9406088990', 'suresh.gupta@hotmail.com'),
+(8, 'Kavita Singh', '9893112244', 'kavita.singh@gmail.com'),
+(9, 'Manoj Tiwari', '9713055667', 'manoj.tiwari@yahoo.co.in'),
+(10, 'Anita Deshmukh', '9425188992', 'anita.deshmukh@gmail.com');
 
-INSERT INTO VaccinationCenters (center_id, center_name, district, state) VALUES
-(1, 'City Civil Hospital', 'Bhopal', 'Madhya Pradesh'),
-(2, 'Community Health Center', 'Indore', 'Madhya Pradesh'),
-(3, 'Metro Care Center', 'Lucknow', 'Uttar Pradesh'),
-(4, 'Urban Primary Health Center', 'Jaipur', 'Rajasthan');
+INSERT INTO Properties (property_id, owner_id, property_address, property_type) VALUES
+(1, 1, 'Plot 12, Arera Colony, Bhopal', 'Residential'),
+(2, 1, 'Shop 4, New Market, Bhopal', 'Commercial'),
+(3, 2, 'Flat 204, Silver Heights, MP Nagar, Bhopal', 'Residential'),
+(4, 3, 'Survey 45, Mandideep Industrial Area, Raisen', 'Industrial'),
+(5, 3, 'Khasra 112, Village Berasia, Bhopal', 'Agricultural'),
+(6, 4, 'House 56, Kolar Road, Bhopal', 'Residential'),
+(7, 5, 'SCO 8, Commercial Complex, Hoshangabad Road, Bhopal', 'Commercial'),
+(8, 6, 'Plot 78, Govindpura Industrial Estate, Bhopal', 'Industrial'),
+(9, 7, 'House 102, Shahpura Sector B, Bhopal', 'Residential'),
+(10, 7, 'Shop 15, Bittan Market, Bhopal', 'Commercial'),
+(11, 8, 'Khasra 89, Phanda Kalan, Sehore Road, Bhopal', 'Agricultural'),
+(12, 9, 'Flat 301, Gulmohar Enclave, E-8 Arera Colony, Bhopal', 'Residential'),
+(13, 10, 'Plot 22, Bagsewaniya, Bhopal', 'Residential'),
+(14, 10, 'Warehouse 3, Transport Nagar, Kokta, Bhopal', 'Industrial');
 
-INSERT INTO Vaccines (vaccine_id, vaccine_name, manufacturer, doses_required) VALUES
-(1, 'Covishield', 'Serum Institute of India', 2),
-(2, 'Covaxin', 'Bharat Biotech', 2),
-(3, 'Sputnik V', 'Gamaleya Research Institute', 2);
+INSERT INTO TaxAssessments (assessment_id, property_id, assessment_year, tax_amount) VALUES
+(1, 1, 2023, 6500.00),
+(2, 1, 2024, 7000.00),
+(3, 1, 2025, 7500.00),
+(4, 2, 2023, 15000.00),
+(5, 2, 2024, 16500.00),
+(6, 2, 2025, 18000.00),
+(7, 3, 2024, 4800.00),
+(8, 3, 2025, 5200.00),
+(9, 4, 2023, 32000.00),
+(10, 4, 2024, 35000.00),
+(11, 4, 2025, 38000.00),
+(12, 5, 2024, 1200.00),
+(13, 5, 2025, 1200.00),
+(14, 6, 2024, 5500.00),
+(15, 6, 2025, 6000.00),
+(16, 7, 2024, 22000.00),
+(17, 7, 2025, 24000.00),
+(18, 8, 2024, 28000.00),
+(19, 8, 2025, 30000.00),
+(20, 9, 2024, 8000.00),
+(21, 9, 2025, 8500.00),
+(22, 10, 2025, 14000.00),
+(23, 11, 2025, 1500.00),
+(24, 12, 2025, 6200.00),
+(25, 13, 2025, 5800.00),
+(26, 14, 2025, 26000.00);
 
-INSERT INTO Vaccinations (vaccination_id, citizen_id, vaccine_id, center_id, vaccination_date) VALUES
-(1, 1, 1, 1, '2023-01-15'),
-(2, 1, 1, 1, '2023-04-10'),
-(3, 2, 2, 2, '2023-02-01'),
-(4, 2, 2, 2, '2023-03-05'),
-(5, 3, 1, 1, '2023-05-12'),
-(6, 4, 3, 3, '2023-03-10'),
-(7, 4, 3, 3, '2023-04-02'),
-(8, 5, 2, 4, '2023-06-15'),
-(9, 6, 1, 1, '2023-02-20'),
-(10, 6, 1, 2, '2023-05-25'),
-(11, 7, 3, 4, '2023-07-01'),
-(12, 7, 3, 4, '2023-07-25');
+INSERT INTO Payments (payment_id, assessment_id, payment_date, amount_paid) VALUES
+(1, 1, '2023-06-15', 6500.00),
+(2, 2, '2024-05-10', 7000.00),
+(3, 3, '2025-04-12', 4000.00),
+(4, 4, '2023-07-20', 10000.00),
+(5, 4, '2023-09-14', 5000.00),
+(6, 5, '2024-06-18', 10000.00),
+(7, 7, '2024-04-22', 4800.00),
+(8, 8, '2025-05-14', 2500.00),
+(9, 9, '2023-08-11', 32000.00),
+(10, 10, '2024-07-15', 20000.00),
+(11, 10, '2024-11-20', 15000.00),
+(12, 11, '2025-06-10', 15000.00),
+(13, 12, '2024-03-25', 1200.00),
+(14, 14, '2024-06-30', 5500.00),
+(15, 15, '2025-07-05', 3000.00),
+(16, 16, '2024-08-14', 12000.00),
+(17, 16, '2024-10-10', 10000.00),
+(18, 18, '2024-09-12', 28000.00),
+(19, 19, '2025-08-20', 10000.00),
+(20, 20, '2024-05-18', 8000.00),
+(21, 21, '2025-09-02', 5000.00),
+(22, 24, '2025-09-18', 6200.00);

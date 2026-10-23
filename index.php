@@ -1,69 +1,121 @@
 <?php
-include("db.php");
-include("header.php");
+include 'includes/db.php';
+include 'includes/header.php';
 
-$res = mysqli_query($con, "SELECT COUNT(*) AS total FROM Citizens");
-$row = mysqli_fetch_assoc($res);
-$citizens_count = $row['total'];
+$res_owners = mysqli_query($con, "SELECT COUNT(*) AS total FROM PropertyOwners");
+$row_owners = mysqli_fetch_assoc($res_owners);
+$total_owners = (int)$row_owners['total'];
 
-$res = mysqli_query($con, "SELECT COUNT(*) AS total FROM VaccinationCenters");
-$row = mysqli_fetch_assoc($res);
-$centers_count = $row['total'];
+$res_props = mysqli_query($con, "SELECT COUNT(*) AS total FROM Properties");
+$row_props = mysqli_fetch_assoc($res_props);
+$total_props = (int)$row_props['total'];
 
-$res = mysqli_query($con, "SELECT COUNT(*) AS total FROM Vaccines");
-$row = mysqli_fetch_assoc($res);
-$vaccines_count = $row['total'];
+$res_assess = mysqli_query($con, "SELECT COUNT(*) AS total, IFNULL(SUM(tax_amount), 0) AS total_tax FROM TaxAssessments");
+$row_assess = mysqli_fetch_assoc($res_assess);
+$total_assessments = (int)$row_assess['total'];
+$total_tax_assessed = (float)$row_assess['total_tax'];
 
-$res = mysqli_query($con, "SELECT COUNT(*) AS total FROM Vaccinations");
-$row = mysqli_fetch_assoc($res);
-$vaccinations_count = $row['total'];
+$res_pay = mysqli_query($con, "SELECT COUNT(*) AS total, IFNULL(SUM(amount_paid), 0) AS total_paid FROM Payments");
+$row_pay = mysqli_fetch_assoc($res_pay);
+$total_payments = (int)$row_pay['total'];
+$total_tax_collected = (float)$row_pay['total_paid'];
+
+$total_tax_pending = $total_tax_assessed - $total_tax_collected;
+if ($total_tax_pending < 0) {
+    $total_tax_pending = 0;
+}
+
+$recent_sql = "SELECT pay.payment_id, pay.payment_date, pay.amount_paid,
+                      a.assessment_id, a.assessment_year,
+                      p.property_address,
+                      o.owner_name
+               FROM Payments pay
+               JOIN TaxAssessments a ON pay.assessment_id = a.assessment_id
+               JOIN Properties p ON a.property_id = p.property_id
+               JOIN PropertyOwners o ON p.owner_id = o.owner_id
+               ORDER BY pay.payment_date DESC, pay.payment_id DESC
+               LIMIT 5";
+$recent_result = mysqli_query($con, $recent_sql);
 ?>
 
-<h2>Dashboard Overview</h2>
+<h1 class="page-title">System Dashboard</h1>
 
-<div class="card">
-    <h3>System Summary</h3>
+<h2 class="section-title">System Summary Totals</h2>
+<div class="table-responsive" style="max-width: 600px;">
     <table class="table">
         <thead>
             <tr>
-                <th>Entity</th>
-                <th>Total Records</th>
-                <th>Action</th>
+                <th>Summary Metric</th>
+                <th class="text-right">Total Count / Amount</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td>Citizens Registered</td>
-                <td><?php echo $citizens_count; ?></td>
-                <td><a href="citizens.php">View Citizens</a></td>
+                <td>Total Registered Owners</td>
+                <td class="text-right"><?php echo $total_owners; ?></td>
             </tr>
             <tr>
-                <td>Vaccination Centers</td>
-                <td><?php echo $centers_count; ?></td>
-                <td><a href="centers.php">View Centers</a></td>
+                <td>Total Registered Properties</td>
+                <td class="text-right"><?php echo $total_props; ?></td>
             </tr>
             <tr>
-                <td>Vaccine Types</td>
-                <td><?php echo $vaccines_count; ?></td>
-                <td><a href="vaccines.php">View Vaccines</a></td>
+                <td>Total Yearly Assessments</td>
+                <td class="text-right"><?php echo $total_assessments; ?></td>
             </tr>
             <tr>
-                <td>Vaccinations Administered</td>
-                <td><?php echo $vaccinations_count; ?></td>
-                <td><a href="vaccinations.php">View Vaccinations</a></td>
+                <td>Total Payments Recorded</td>
+                <td class="text-right"><?php echo $total_payments; ?></td>
+            </tr>
+            <tr>
+                <td>Total Tax Assessed</td>
+                <td class="text-right">Rs. <?php echo number_format($total_tax_assessed, 2); ?></td>
+            </tr>
+            <tr>
+                <td>Total Tax Collected</td>
+                <td class="text-right">Rs. <?php echo number_format($total_tax_collected, 2); ?></td>
+            </tr>
+            <tr>
+                <td>Total Pending Due</td>
+                <td class="text-right"><strong>Rs. <?php echo number_format($total_tax_pending, 2); ?></strong></td>
             </tr>
         </tbody>
     </table>
 </div>
 
-<div class="card">
-    <h3>Quick Actions</h3>
-    <p style="margin-bottom: 12px;">Select an operation to proceed:</p>
-    <a href="citizens.php" class="btn">Register Citizen</a>
-    <a href="vaccinations.php" class="btn">Record Vaccination</a>
-    <a href="reports.php" class="btn btn-secondary">View Reports</a>
-</div>
+<h2 class="section-title">Recent Payments (Last 5 Records)</h2>
+<?php if ($recent_result && mysqli_num_rows($recent_result) > 0): ?>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Payment ID</th>
+                    <th>Assessment ID</th>
+                    <th>Owner</th>
+                    <th>Property Address</th>
+                    <th>Year</th>
+                    <th>Date</th>
+                    <th class="text-right">Amount (Rs.)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php while ($row = mysqli_fetch_assoc($recent_result)): ?>
+                    <tr>
+                        <td><?php echo (int)$row['payment_id']; ?></td>
+                        <td>#<?php echo (int)$row['assessment_id']; ?></td>
+                        <td><?php echo htmlspecialchars($row['owner_name']); ?></td>
+                        <td><?php echo htmlspecialchars($row['property_address']); ?></td>
+                        <td><?php echo (int)$row['assessment_year']; ?></td>
+                        <td><?php echo htmlspecialchars($row['payment_date']); ?></td>
+                        <td class="text-right"><?php echo number_format((float)$row['amount_paid'], 2); ?></td>
+                    </tr>
+                <?php endwhile; ?>
+            </tbody>
+        </table>
+    </div>
+<?php else: ?>
+    <div class="empty-msg">No payments recorded yet.</div>
+<?php endif; ?>
 
 <?php
-include("footer.php");
+include 'includes/footer.php';
 ?>
