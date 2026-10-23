@@ -1,0 +1,15 @@
+{
+  "name": "property-tax-system",
+  "version": "1.0.0",
+  "description": "Municipal Property Tax System - DBMS Assignment Project",
+  "scripts": {
+    "dev": "start http://localhost:8080/index.php && C:\\xampp\\php\\php.exe -S localhost:8080",
+    "start": "C:\\xampp\\php\\php.exe -S localhost:8080",
+    "open": "start http://localhost:8080/index.php",
+    "db:setup": "powershell -Command \"Get-Content sql/schema.sql | & 'C:\\xampp\\mysql\\bin\\mysql.exe' -P 3307 -u root; Get-Content sql/sample_data.sql | & 'C:\\xampp\\mysql\\bin\\mysql.exe' -P 3307 -u root\"",
+    "db:shell": "C:\\xampp\\mysql\\bin\\mysql.exe -P 3307 -u root -D property_tax",
+    "db:status": "C:\\xampp\\mysql\\bin\\mysql.exe -P 3307 -u root -D property_tax -e \"SELECT 'PropertyOwners' AS tbl, count(*) AS total FROM PropertyOwners UNION SELECT 'Properties', count(*) FROM Properties UNION SELECT 'TaxAssessments', count(*) FROM TaxAssessments UNION SELECT 'Payments', count(*) FROM Payments;\""
+  },
+  "author": "Sahil Gupta",
+  "license": "ISC"
+}

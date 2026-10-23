@@ -173,6 +173,35 @@ Navigate to the following address in your browser:
 ```
 http://localhost/property-tax-system/
 ```
+
+### Quick Commands (NPM Workflow in VS Code)
+
+If working inside VS Code, you can use these npm scripts directly in the terminal:
+
+- Start server and open browser automatically:
+  ```bash
+  npm run dev
+  ```
+- Start server without opening browser:
+  ```bash
+  npm start
+  ```
+- Open the website in your browser:
+  ```bash
+  npm run open
+  ```
+- Reset and re-load database (schema + sample data):
+  ```bash
+  npm run db:setup
+  ```
+- Check total row counts across all tables:
+  ```bash
+  npm run db:status
+  ```
+- Open MySQL terminal shell:
+  ```bash
+  npm run db:shell
+  ```
 Or if running directly through PHP built-in server:
 ```
 http://localhost:8080/index.php
